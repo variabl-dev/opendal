@@ -17,7 +17,6 @@
 
 use std::collections::VecDeque;
 
-use compio::buf::IoBuf;
 use futures::Future;
 use mini_moka::sync::Cache;
 use tokio::sync::Mutex;

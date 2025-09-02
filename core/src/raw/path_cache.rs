@@ -17,8 +17,9 @@
 
 use std::collections::VecDeque;
 
+use compio::buf::IoBuf;
 use futures::Future;
-use moka::sync::Cache;
+use mini_moka::sync::Cache;
 use tokio::sync::Mutex;
 use tokio::sync::MutexGuard;
 
@@ -92,31 +93,30 @@ impl<Q: PathQuery> PathCacher<Q> {
     /// Insert a new cache entry.
     pub async fn insert(&self, path: &str, id: &str) {
         let _guard = self.lock().await;
-
+        let path = path.to_owned();
         // This should never happen, but let's ignore the insert if happened.
-        if self.cache.contains_key(path) {
+        if self.cache.contains_key(&path) {
             debug_assert!(
-                self.cache.get(path) == Some(id.to_string()),
+                self.cache.get(&path) == Some(id.to_string()),
                 "path {path} exists but it's value is inconsistent"
             );
             return;
         }
 
-        self.cache.insert(path.to_string(), id.to_string());
+        self.cache.insert(path, id.to_string());
     }
 
     /// Remove a cache entry.
     pub async fn remove(&self, path: &str) {
         let _guard = self.lock().await;
-
-        self.cache.invalidate(path)
+        self.cache.invalidate(&path.to_owned())
     }
 
     /// Get the id for the given path.
     pub async fn get(&self, path: &str) -> Result<Option<String>> {
         let _guard = self.lock().await;
-
-        if let Some(id) = self.cache.get(path) {
+        let path = path.to_owned();
+        if let Some(id) = self.cache.get(&path) {
             return Ok(Some(id));
         }
 
@@ -125,8 +125,8 @@ impl<Q: PathQuery> PathCacher<Q> {
 
         while current_path != "/" && !current_path.is_empty() {
             paths.push_front(current_path.to_string());
-            current_path = get_parent(current_path);
-            if let Some(id) = self.cache.get(current_path) {
+            current_path = get_parent(current_path.as_str()).to_owned();
+            if let Some(id) = self.cache.get(&current_path) {
                 return self.query_down(&id, paths).await;
             }
         }
@@ -172,7 +172,7 @@ impl<Q: PathQuery> PathCacher<Q> {
             parents.push(tmp.to_string());
         }
 
-        let mut parent_id = match self.cache.get("/") {
+        let mut parent_id = match self.cache.get(&"/".to_owned()) {
             Some(v) => v,
             None => self.query.root().await?,
         };

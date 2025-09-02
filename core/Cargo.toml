@@ -74,7 +74,7 @@ tests = [
 
 # Enable path cache.
 # This is an internal feature, and should not be used by users.
-internal-path-cache = ["dep:moka"]
+internal-path-cache = ["dep:mini-moka"]
 # Enable tokio runtime.
 internal-tokio-rt = ["tokio/rt-multi-thread"]
 
